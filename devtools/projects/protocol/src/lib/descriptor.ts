@@ -12,3 +12,7 @@ export function getDescriptorInitialValue(descriptor: Descriptor) {
   const valueOrPreview = descriptor.value || descriptor.preview;
   return valueOrPreview
 }
+
+export function getDisplayedPreview(descriptor: Descriptor) {
+  return descriptor.preview
+}
