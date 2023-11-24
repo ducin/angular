@@ -32,8 +32,8 @@ const isSignal =
     (prop: unknown) => {
       if (typeof prop == 'function') {
         const symbols = Object.getOwnPropertySymbols(prop);
-        const signalSymbol = symbols.find((s) => s.description === 'SIGNAL');
-        return !!signalSymbol
+        const isSignal = symbols.some((s) => s.description === 'SIGNAL');
+        return isSignal
       }
       return false
     }
