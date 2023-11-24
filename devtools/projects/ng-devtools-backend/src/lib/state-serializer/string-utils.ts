@@ -6,9 +6,9 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Descriptor} from './messages';
-
-export function getDescriptorInitialValue(descriptor: Descriptor) {
-  const valueOrPreview = descriptor.value || descriptor.preview;
-  return valueOrPreview
-}
+export const truncate = (str: string, max = 20): string => {
+  if (str.length > max) {
+    return str.substring(0, max) + '...';
+  }
+  return str;
+};

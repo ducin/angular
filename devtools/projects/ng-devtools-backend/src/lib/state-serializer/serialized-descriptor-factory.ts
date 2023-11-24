@@ -8,8 +8,9 @@
 
 import {Descriptor, NestedProp, PropType} from 'protocol';
 
-import {getDescriptor, getKeys} from './object-utils';
+import {getKeys, getPropertyDescriptor, NativePropertyDescriptor} from './object-utils';
 import {getPropType} from './state-serializer';
+import {truncate} from './string-utils';
 
 // todo(aleksanderbodurri) pull this out of this file
 const METADATA_PROPERTY_NAME = '__ngContext__';
@@ -89,68 +90,76 @@ const typeToDescriptorPreview: Formatter<string> = {
 type Key = string|number;
 const ignoreList: Set<Key> = new Set([METADATA_PROPERTY_NAME, '__ngSimpleChanges__']);
 
-const shallowPropTypeToTreeMetaData:
-    Record<Exclude<PropType, NestedType>, {editable: boolean, expandable: boolean}> = {
-      [PropType.String]: {
-        editable: true,
-        expandable: false,
-      },
-      [PropType.BigInt]: {
-        editable: false,
-        expandable: false,
-      },
-      [PropType.Boolean]: {
-        editable: true,
-        expandable: false,
-      },
-      [PropType.Number]: {
-        editable: true,
-        expandable: false,
-      },
-      [PropType.Date]: {
-        editable: false,
-        expandable: false,
-      },
-      [PropType.Null]: {
-        editable: true,
-        expandable: false,
-      },
-      [PropType.Undefined]: {
-        editable: true,
-        expandable: false,
-      },
-      [PropType.Symbol]: {
-        editable: false,
-        expandable: false,
-      },
-      [PropType.Function]: {
-        editable: false,
-        expandable: false,
-      },
-      [PropType.HTMLNode]: {
-        editable: false,
-        expandable: false,
-      },
-      [PropType.Unknown]: {
-        editable: false,
-        expandable: false,
-      },
-      [PropType.Set]: {
-        editable: false,
-        expandable: false,
-      },
-      [PropType.ReadonlySignal]: {
-        editable: false,
-        expandable: false,
-      },
-      [PropType.WritableSignal]: {
-        editable: false,
-        expandable: false,
-      },
-    };
+const shallowPropTypeToTreeMetaData: Record<Exclude<PropType, NestedType>, {
+  /**
+   * User would be able to edit the value of the property
+   */
+  editable: boolean,
+  /**
+   * User would be able to expand the property
+   */
+  expandable: boolean
+}> = {
+  [PropType.String]: {
+    editable: true,
+    expandable: false,
+  },
+  [PropType.BigInt]: {
+    editable: false,
+    expandable: false,
+  },
+  [PropType.Boolean]: {
+    editable: true,
+    expandable: false,
+  },
+  [PropType.Number]: {
+    editable: true,
+    expandable: false,
+  },
+  [PropType.Date]: {
+    editable: false,
+    expandable: false,
+  },
+  [PropType.Null]: {
+    editable: true,
+    expandable: false,
+  },
+  [PropType.Undefined]: {
+    editable: true,
+    expandable: false,
+  },
+  [PropType.Symbol]: {
+    editable: false,
+    expandable: false,
+  },
+  [PropType.Function]: {
+    editable: false,
+    expandable: false,
+  },
+  [PropType.HTMLNode]: {
+    editable: false,
+    expandable: false,
+  },
+  [PropType.Unknown]: {
+    editable: false,
+    expandable: false,
+  },
+  [PropType.Set]: {
+    editable: false,
+    expandable: false,
+  },
+  [PropType.ReadonlySignal]: {
+    editable: false,
+    expandable: false,
+  },
+  [PropType.WritableSignal]: {
+    editable: false,
+    expandable: false,
+  },
+};
 
 const isEditable =
-    (descriptor: any, propName: string|number, propData: TerminalType,
+    (descriptor: NativePropertyDescriptor, propName: string|number, propData: TerminalType,
      isGetterOrSetter: boolean) => {
       if (typeof propName === 'symbol') {
         return false;
@@ -167,8 +176,8 @@ const isEditable =
       return shallowPropTypeToTreeMetaData[propData.type].editable;
     };
 
-const isGetterOrSetter = (descriptor: any): boolean =>
-    (descriptor?.set || descriptor?.get) && !('value' in descriptor);
+const isGetterOrSetter = (descriptor: NativePropertyDescriptor): boolean =>
+    Boolean(descriptor?.set || descriptor?.get) && !(descriptor && ('value' in descriptor));
 
 const getPreview = (propData: TerminalType|CompositeType, isGetterOrSetter: boolean) => {
   return !isGetterOrSetter ? typeToDescriptorPreview[propData.type](propData.prop) :
@@ -179,13 +188,13 @@ export const createShallowSerializedDescriptor =
     (instance: any, propName: string|number, propData: TerminalType): Descriptor => {
       const {type} = propData;
 
-      const descriptor = getDescriptor(instance, propName as string);
-      const getterOrSetter: boolean = isGetterOrSetter(descriptor);
+      const nativeDescriptor = getPropertyDescriptor(instance, propName as string);
+      const getterOrSetter: boolean = isGetterOrSetter(nativeDescriptor);
 
       const shallowSerializedDescriptor: Descriptor = {
         type,
         expandable: shallowPropTypeToTreeMetaData[type].expandable,
-        editable: isEditable(descriptor, propName, propData, getterOrSetter),
+        editable: isEditable(nativeDescriptor, propName, propData, getterOrSetter),
         preview: getPreview(propData, getterOrSetter),
       };
 
@@ -202,8 +211,8 @@ export const createLevelSerializedDescriptor =
         Descriptor => {
           const {type, prop} = propData;
 
-          const descriptor = getDescriptor(instance, propName as string);
-          const getterOrSetter: boolean = isGetterOrSetter(descriptor);
+          const nativeDescriptor = getPropertyDescriptor(instance, propName as string);
+          const getterOrSetter: boolean = isGetterOrSetter(nativeDescriptor);
 
           const levelSerializedDescriptor: Descriptor = {
             type,
@@ -230,8 +239,8 @@ export const createNestedSerializedDescriptor =
          level?: number) => void): Descriptor => {
       const {type, prop} = propData;
 
-      const descriptor = getDescriptor(instance, propName as string);
-      const getterOrSetter: boolean = isGetterOrSetter(descriptor);
+      const nativeDescriptor = getPropertyDescriptor(instance, propName as string);
+      const getterOrSetter: boolean = isGetterOrSetter(nativeDescriptor);
 
       const nestedSerializedDescriptor: Descriptor = {
         type,
@@ -293,10 +302,3 @@ const getLevelDescriptorValue =
           }, {});
       }
     };
-
-const truncate = (str: string, max = 20): string => {
-  if (str.length > max) {
-    return str.substring(0, max) + '...';
-  }
-  return str;
-};

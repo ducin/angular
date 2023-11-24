@@ -20,17 +20,21 @@ export class DemoAppComponent {
   @ViewChild(ZippyComponent) zippy: ZippyComponent;
   @ViewChild('elementReference') elementRef: ElementRef;
 
+  exampleNumber = 40
+  exampleString = 'John'
+  exampleObject = {name: 'John', age: 40}
+
   @Input('input_one') inputOne = 'input one';
   @Input() inputTwo = 'input two';
 
   @Output() outputOne = new EventEmitter();
   @Output('output_two') outputTwo = new EventEmitter();
 
-  primitiveSignal = signal(123);
-  primitiveComputed = computed(() => this.primitiveSignal() ** 2);
-  objectSignal = signal({name: 'John', age: 40});
-  objectComputed = computed(() => {
-    const original = this.objectSignal();
+  signalPrimitive = signal(123);
+  computedPrimitive = computed(() => this.signalPrimitive() ** 2);
+  signalObject = signal({name: 'John', age: 40});
+  computedObject = computed(() => {
+    const original = this.signalObject();
     return {...original, age: original.age + 1};
   });
 

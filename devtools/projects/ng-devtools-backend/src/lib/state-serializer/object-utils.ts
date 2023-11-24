@@ -39,6 +39,8 @@ export const getKeys = (obj: {}): string[] => {
  * @param propName The string representation of the target property name
  * @returns The Descriptor object of the property
  */
-export const getDescriptor = (instance: any, propName: string) =>
+export const getPropertyDescriptor = (instance: any, propName: string): NativePropertyDescriptor =>
     Object.getOwnPropertyDescriptor(instance, propName) ||
     Object.getOwnPropertyDescriptor(Object.getPrototypeOf(instance), propName);
+
+export type NativePropertyDescriptor = ReturnType<typeof Object.getOwnPropertyDescriptor>

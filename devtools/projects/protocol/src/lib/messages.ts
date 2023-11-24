@@ -58,7 +58,7 @@ export interface SerializedProviderRecord {
 
 /**
  * Duplicate of the InjectedService interface from Angular framework to prevent
- * needing to publically expose the interface from the framework.
+ * needing to publicly expose the interface from the framework.
  */
 export interface InjectedService {
   token?: Type<unknown>|InjectionToken<unknown>;
@@ -86,6 +86,13 @@ export enum PropType {
   Unknown,
 }
 
+/**
+ * The Angular Devtools' component property descriptor.
+ * Allows to preview value's string representation, optionally edit it, optionally expand it if it's
+ * a composite type.
+ *
+ * IMPORTANT: do not confuse with the `PropertyDescriptor` from the JavaScript language.
+ */
 export interface Descriptor {
   expandable: boolean;
   value?: any;
