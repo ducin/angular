@@ -8,6 +8,7 @@
 
 import {FlatTreeControl} from '@angular/cdk/tree';
 import {Component, EventEmitter, Input, Output} from '@angular/core';
+import {getDescriptorInitialValue} from 'protocol';
 
 import {FlatNode} from '../../property-resolver/element-property-resolver';
 import {PropertyDataSource} from '../../property-resolver/property-data-source';
@@ -39,6 +40,10 @@ export class PropertyViewTreeComponent {
       return;
     }
     this.treeControl.expand(node);
+  }
+
+  getInitialValue(node: FlatNode) {
+    return getDescriptorInitialValue(node.prop.descriptor)
   }
 
   handleUpdate(node: FlatNode, newValue: any): void {

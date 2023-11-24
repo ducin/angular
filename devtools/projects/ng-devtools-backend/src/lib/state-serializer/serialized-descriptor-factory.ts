@@ -83,7 +83,6 @@ const typeToDescriptorPreview: Formatter<string> = {
     const signalValue = prop();
     return `WritableSignal(${typeToDescriptorPreview[getPropType(signalValue)](signalValue)})`
   },
-  // [PropType.WritableSignal]: (prop: any) => `Signal(...)`,
   [PropType.Unknown]: (_: any) => 'unknown',
 };
 
