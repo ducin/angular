@@ -18,24 +18,24 @@ export class ZoneAwareChromeMessageBus extends MessageBus<Events> {
     this._bus = new ChromeMessageBus(port);
   }
 
-  on<E extends keyof Events>(topic: E, cb: Events[E]): void {
-    this._bus.on(topic, function(): void {
-      this._ngZone.run(() => cb.apply(null, arguments));
-    }.bind(this));
+  override on<E extends keyof Events>(topic: E, cb: Events[E]): void {
+    this._bus.on(topic, (...args: any): void => {
+      this._ngZone.run(() => (cb as any)(...args));
+    });
   }
 
-  once<E extends keyof Events>(topic: E, cb: Events[E]): void {
-    this._bus.once(topic, function(): void {
-      this._ngZone.run(() => cb.apply(null, arguments));
-    }.bind(this));
+  override once<E extends keyof Events>(topic: E, cb: Events[E]): void {
+    this._bus.once(topic, (...args: any): void => {
+      this._ngZone.run(() => (cb as any)(...args));
+    });
   }
 
-  emit<E extends keyof Events>(topic: E, args?: Parameters<Events[E]>): boolean {
+  override emit<E extends keyof Events>(topic: E, args?: Parameters<Events[E]>): boolean {
     this._ngZone.run(() => this._bus.emit(topic, args));
     return true;
   }
 
-  destroy(): void {
+  override destroy(): void {
     this._bus.destroy();
   }
 }

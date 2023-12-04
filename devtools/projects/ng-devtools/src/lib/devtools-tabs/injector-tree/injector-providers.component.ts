@@ -32,7 +32,7 @@ import {Events, MessageBus, SerializedInjector, SerializedProviderRecord} from '
                   @if (provider.type === 'multi') {
                     multi (x{{ provider.index.length }})
                   } @else {
-                    {{typeToLabel[provider.type]}}
+                    {{$any(typeToLabel)[provider.type]}}
                   }
                 </td>
               </ng-container>
@@ -111,7 +111,7 @@ import {Events, MessageBus, SerializedInjector, SerializedProviderRecord} from '
   imports: [NgIf, NgForOf, MatTableModule, MatIconModule, MatTooltipModule],
 })
 export class InjectorProvidersComponent {
-  @Input() injector: SerializedInjector;
+  @Input({required: true}) injector!: SerializedInjector;
   @Input() providers: SerializedProviderRecord[] = [];
 
   typeToLabel = {

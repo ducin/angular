@@ -7,6 +7,7 @@
  */
 
 import {AfterViewInit, Component, Input, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import {MatTabNav} from '@angular/material/tabs';
 import {Events, MessageBus, Route} from 'protocol';
 import {Subscription} from 'rxjs';
@@ -22,10 +23,10 @@ import {TabUpdate} from './tab-update/index';
   templateUrl: './devtools-tabs.component.html',
   styleUrls: ['./devtools-tabs.component.scss'],
 })
-export class DevToolsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
+export class DevToolsTabsComponent implements OnInit, AfterViewInit {
   @Input() angularVersion: string|undefined = undefined;
-  @ViewChild(DirectiveExplorerComponent) directiveExplorer: DirectiveExplorerComponent;
-  @ViewChild('navBar', {static: true}) navbar: MatTabNav;
+  @ViewChild(DirectiveExplorerComponent) directiveExplorer!: DirectiveExplorerComponent;
+  @ViewChild('navBar', {static: true}) navbar!: MatTabNav;
 
   activeTab: 'Components'|'Profiler'|'Router Tree'|'Injector Tree' = 'Components';
 
@@ -34,24 +35,25 @@ export class DevToolsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
   showCommentNodes = false;
   timingAPIEnabled = false;
 
-  private _currentThemeSubscription: Subscription;
-  currentTheme: Theme;
+  currentTheme!: Theme;
 
   routes: Route[] = [];
 
   constructor(
-      public tabUpdate: TabUpdate, public themeService: ThemeService,
+      public tabUpdate: TabUpdate,
+      public themeService: ThemeService,
       private _messageBus: MessageBus<Events>,
-      private _applicationEnvironment: ApplicationEnvironment) {}
-
-  ngOnInit(): void {
-    this._currentThemeSubscription =
-        this.themeService.currentTheme.subscribe((theme) => (this.currentTheme = theme));
+      private _applicationEnvironment: ApplicationEnvironment,
+  ) {
+    this.themeService.currentTheme.pipe(takeUntilDestroyed())
+        .subscribe((theme) => (this.currentTheme = theme));
 
     this._messageBus.on('updateRouterTree', (routes) => {
       this.routes = routes || [];
     });
+  }
 
+  ngOnInit(): void {
     this.navbar.stretchTabs = false;
   }
 
@@ -62,10 +64,6 @@ export class DevToolsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.navbar.disablePagination = true;
-  }
-
-  ngOnDestroy(): void {
-    this._currentThemeSubscription.unsubscribe();
   }
 
   get latestSHA(): string {

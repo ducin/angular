@@ -11,12 +11,12 @@ import {findNodeFromSerializedPosition} from 'ng-devtools-backend';
 import {buildDirectiveForest, queryDirectiveForest} from '../../../ng-devtools-backend/src/lib/component-tree';
 
 export const initializeExtendedWindowOperations = () => {
-  extendWindowOperations(window, {inspectedApplication: chromeWindowExtensions});
+  extendWindowOperations(window as any, {inspectedApplication: chromeWindowExtensions});
 };
 
-const extendWindowOperations = <T extends {}>(target, classImpl: T) => {
+const extendWindowOperations = <T extends {}>(target: T, classImpl: T) => {
   for (const key of Object.keys(classImpl)) {
-    if (target[key] != null) {
+    if (target[key as keyof T] != null) {
       console.warn(`A window function or object named ${key} would be overwritten`);
     }
   }
@@ -56,7 +56,7 @@ const chromeWindowExtensions = {
     }
     return node.nativeElement;
   },
-  findPropertyByPosition: (args): any => {
+  findPropertyByPosition: (args: any): any => {
     const {directivePosition, objectPath} = JSON.parse(args);
     const node = queryDirectiveForest(directivePosition.element, buildDirectiveForest());
     if (node === null) {
