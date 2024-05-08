@@ -1,17 +1,9 @@
+{{valueToSubmit}}
 <div class="editor" (click)="onClick()">
   <span class="state-container">
     @switch (currentPropertyState) {
       @case (readState) {
-        <span>
-            @switch(containerType) {
-              @case('WritableSignal') { 
-                <span class="editable">Signal({{valueToSubmit}})</span> 
-              }
-              @default { 
-                <span class="editable">{{ valueToSubmit }}</span> 
-              }
-            }
-        </span>
+        <span class="editable">{{ getReadValue() }}</span>
       }
       @case (writeState) {
         <span>

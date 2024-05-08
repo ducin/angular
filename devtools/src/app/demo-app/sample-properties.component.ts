@@ -49,4 +49,8 @@ export class SamplePropertiesComponent {
   });
 
   signalSymbol = SIGNAL;
+
+  emptyString = '';
+  emptyStringSignal = signal('');
+  nonEmptyStringSignal = signal('hi there');
 }

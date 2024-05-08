@@ -44,7 +44,7 @@ const parseValue = (value: EditorResult): EditorResult => {
 })
 export class PropertyEditorComponent implements AfterViewChecked, OnInit {
   @Input({required: true}) key!: string;
-  @Input({required: true}) initialValue!: EditorResult;
+  @Input({required: true}) existingValue!: EditorResult;
   @Input() containerType: ContainerType = null;
 
   @Output() updateValue = new EventEmitter<EditorResult>();
@@ -61,13 +61,21 @@ export class PropertyEditorComponent implements AfterViewChecked, OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.valueToSubmit = this.initialValue;
+    this.valueToSubmit = this.existingValue;
   }
 
   ngAfterViewChecked(): void {
     if (this.currentPropertyState === this.writeState) {
       this.editor.focus();
     }
+  }
+
+  getReadValue() {
+    // switch(this.containerType){
+    //   case 'WritableSignal': return `Signal(${this.existingValue})`
+    //   default: return this.existingValue
+    // }
+    return this.existingValue;
   }
 
   accept(): void {
@@ -77,7 +85,7 @@ export class PropertyEditorComponent implements AfterViewChecked, OnInit {
   }
 
   reject(): void {
-    this.valueToSubmit = this.initialValue;
+    this.valueToSubmit = this.existingValue;
     this._transition(this.readState);
   }
 

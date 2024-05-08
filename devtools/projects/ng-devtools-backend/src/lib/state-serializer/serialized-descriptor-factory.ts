@@ -172,11 +172,11 @@ const isGetterOrSetter = (descriptor: any): boolean =>
   (descriptor?.set || descriptor?.get) && !('value' in descriptor);
 
 const getPreview = (propData: TerminalType | CompositeType, isGetterOrSetter: boolean) => {
-  if (propData.containerType === 'ReadonlySignal') {
-    return `Readonly Signal(${typeToDescriptorPreview[propData.type](propData.prop())})`;
-  } else if (propData.containerType === 'WritableSignal') {
-    return `Signal(${typeToDescriptorPreview[propData.type](propData.prop())})`;
-  }
+  // if (propData.containerType === 'ReadonlySignal') {
+  //   return `Readonly Signal(${typeToDescriptorPreview[propData.type](propData.prop())})`;
+  // } else if (propData.containerType === 'WritableSignal') {
+  //   return `Signal(${typeToDescriptorPreview[propData.type](propData.prop())})`;
+  // }
   return !isGetterOrSetter
     ? typeToDescriptorPreview[propData.type](propData.prop)
     : typeToDescriptorPreview[PropType.Function]({name: ''});

@@ -39,6 +39,19 @@ export class PropertyViewTreeComponent {
 
   hasChild = (_: number, node: FlatNode): boolean => node.expandable;
 
+  getNodeInitialValue(node: FlatNode) {
+    const nodeDescriptor = node.prop.descriptor;
+
+    switch (nodeDescriptor.containerType) {
+      case 'ReadonlySignal':
+        return `Readonly Signal(${nodeDescriptor.preview})`;
+      case 'WritableSignal':
+        return `Signal(${nodeDescriptor.preview})`;
+      default:
+        return nodeDescriptor.value || nodeDescriptor.preview;
+    }
+  }
+
   toggle(node: FlatNode): void {
     if (this.treeControl.isExpanded(node)) {
       this.treeControl.collapse(node);

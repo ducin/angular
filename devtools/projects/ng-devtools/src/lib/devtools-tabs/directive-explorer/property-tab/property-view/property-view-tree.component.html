@@ -7,7 +7,7 @@
       } @else {
         <ng-property-editor
           [key]="node.prop.name"
-          [initialValue]="node.prop.descriptor.value || node.prop.descriptor.preview"
+          [existingValue]="getNodeInitialValue(node)"
           [containerType]="node.prop.descriptor.containerType"
           (updateValue)="handleUpdate(node, $event)"
           />
