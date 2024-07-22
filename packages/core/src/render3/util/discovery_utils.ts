@@ -6,10 +6,12 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import {ComputedNode, SIGNAL, SignalNode} from '@angular/core/primitives/signals';
 import {ChangeDetectionStrategy} from '../../change_detection/constants';
 import {Injector} from '../../di/injector';
 import {ViewEncapsulation} from '../../metadata/view';
-import {assertLView} from '../assert';
+import {throwError} from '../../util/assert';
+import {assertLView, assertTNode} from '../assert';
 import {
   discoverLocalRefs,
   getComponentAtNodeIndex,
@@ -18,13 +20,28 @@ import {
   readPatchedLView,
 } from '../context_discovery';
 import {getComponentDef, getDirectiveDef} from '../definition';
-import {NodeInjector} from '../di';
+import {NodeInjector, getNodeInjectorLView, getNodeInjectorTNode} from '../di';
 import {DirectiveDef} from '../interfaces/definition';
 import {TElementNode, TNode, TNodeProviderIndexes} from '../interfaces/node';
-import {CLEANUP, CONTEXT, FLAGS, LView, LViewFlags, TVIEW, TViewType} from '../interfaces/view';
+import {
+  CLEANUP,
+  CONTEXT,
+  FLAGS,
+  HOST,
+  LView,
+  LViewFlags,
+  REACTIVE_TEMPLATE_CONSUMER,
+  TVIEW,
+  TViewType,
+} from '../interfaces/view';
 
 import {getRootContext} from './view_traversal_utils';
 import {getLViewParent, unwrapRNode} from './view_utils';
+import {isLView} from '../interfaces/type_checks';
+import {getFrameworkDIDebugData} from '../debug/framework_injector_profiler';
+import {Watch, WatchNode} from '@angular/core/primitives/signals/src/watch';
+import {R3Injector} from '../../di/r3_injector';
+import {ReactiveLViewConsumer} from '../reactive_lview_consumer';
 
 /**
  * Retrieves the component instance associated with a given DOM element.
@@ -512,4 +529,174 @@ function extractInputDebugMetadata<T>(inputs: DirectiveDef<T>['inputs']) {
   }
 
   return res;
+}
+
+type SignalGraphNode<T> = SignalNode<T> | ComputedNode<T> | WatchNode | ReactiveLViewConsumer;
+
+interface DebugSignalNode<T> {
+  type: 'signal';
+  label: string;
+  value: T;
+}
+interface DebugEffectNode {
+  type: 'effect';
+  label: string;
+}
+
+interface DebugComputedNode<T> {
+  type: 'computed';
+  label: string;
+  value: T;
+}
+
+interface DebugTemplateNode {
+  type: 'template';
+  label: string;
+}
+
+type DebugSignalGraphNode<T> =
+  | DebugSignalNode<T>
+  | DebugEffectNode
+  | DebugComputedNode<T>
+  | DebugTemplateNode;
+
+interface DebugSignalGraphEdge {
+  from: number;
+  to: number;
+}
+
+interface DebugSignalGraph<T> {
+  nodes: DebugSignalGraphNode<T>[];
+  edges: DebugSignalGraphEdge[];
+}
+
+function isComputedNode<T>(node: SignalGraphNode<T>): node is ComputedNode<T> {
+  return (node as ComputedNode<T>).computation !== undefined;
+}
+
+function isTemplateNode<T>(node: SignalGraphNode<T>): node is ReactiveLViewConsumer {
+  return (
+    (node as ReactiveLViewConsumer).lView !== undefined &&
+    isLView((node as ReactiveLViewConsumer).lView)
+  );
+}
+
+function isEffectNode<T>(node: SignalGraphNode<T>): node is WatchNode {
+  return (node as WatchNode).cleanupFn !== undefined;
+}
+
+export function getSignalGraph(injector: Injector): DebugSignalGraph<unknown> {
+  if (!(injector instanceof NodeInjector) && !(injector instanceof R3Injector)) {
+    return throwError('getSignals must be called with a NodeInjector or an R3Injector');
+  }
+
+  const signalDependenciesMap = new Map<SignalGraphNode<unknown>, Set<SignalGraphNode<unknown>>>();
+
+  // if the injector is a NodeInjector, we need to extract the signals from the template
+  // otherwise if it is an R3Injector, we proceed as normal without this extra step since both cases
+  // require us to extract signals from the injector
+  if (injector instanceof NodeInjector) {
+    const tNode = getNodeInjectorTNode(injector)!;
+    const lView = getNodeInjectorLView(injector);
+
+    assertTNode(tNode);
+    assertLView(lView);
+    const templateLView = lView[tNode.index];
+    if (templateLView) {
+      const templateConsumer = templateLView[REACTIVE_TEMPLATE_CONSUMER];
+
+      if (templateConsumer) {
+        extractSignalNodesAndEdgesFromRoot(templateConsumer, signalDependenciesMap);
+      }
+    }
+  }
+
+  const effects = extractEffectsFromInjector(injector);
+  for (const effect of effects) {
+    const {watcher} = effect;
+    const signalRoot = watcher[SIGNAL];
+    extractSignalNodesAndEdgesFromRoot(signalRoot, signalDependenciesMap);
+  }
+
+  return extractNodesAndEdgesFromSignalMap(signalDependenciesMap);
+}
+
+function extractNodesAndEdgesFromSignalMap(
+  signalMap: Map<SignalGraphNode<unknown>, Set<SignalGraphNode<unknown>>>,
+): {
+  nodes: DebugSignalGraphNode<unknown>[];
+  edges: DebugSignalGraphEdge[];
+} {
+  const nodes = Array.from(signalMap.keys());
+  const debugSignalGraphNodes = nodes.map((signalGraphNode: SignalGraphNode<unknown>) => {
+    if (isComputedNode(signalGraphNode)) {
+      return {
+        label: signalGraphNode.debugName,
+        value: signalGraphNode.value,
+        type: 'computed',
+      };
+    }
+
+    if (isTemplateNode(signalGraphNode)) {
+      return {
+        label: signalGraphNode.lView?.[HOST]?.tagName?.toLowerCase?.(),
+        value: undefined,
+        type: 'template',
+      };
+    }
+
+    if (isEffectNode(signalGraphNode)) {
+      return {
+        label: signalGraphNode.debugName,
+        value: undefined,
+        type: 'effect',
+      };
+    }
+
+    return {
+      label: signalGraphNode.debugName,
+      value: signalGraphNode.value,
+      type: 'signal',
+    };
+  }) as DebugSignalGraphNode<unknown>[];
+
+  const edges: DebugSignalGraphEdge[] = [];
+  for (const [node, producers] of signalMap.entries()) {
+    for (const producer of producers) {
+      edges.push({from: nodes.indexOf(node), to: nodes.indexOf(producer)});
+    }
+  }
+
+  return {nodes: debugSignalGraphNodes, edges};
+}
+
+function extractEffectsFromInjector(injector: Injector) {
+  let diResolver: Injector | LView<unknown> = injector;
+  if (injector instanceof NodeInjector) {
+    const lView = getNodeInjectorLView(injector)!;
+    diResolver = lView;
+  }
+
+  const {resolverToEffects} = getFrameworkDIDebugData();
+  return resolverToEffects.get(diResolver) ?? [];
+}
+
+function extractSignalNodesAndEdgesFromRoot(
+  node: SignalGraphNode<unknown>,
+  signalDependenciesMap: Map<SignalGraphNode<unknown>, Set<SignalGraphNode<unknown>>>,
+): Map<SignalGraphNode<unknown>, Set<SignalGraphNode<unknown>>> {
+  if (signalDependenciesMap.has(node)) {
+    return signalDependenciesMap;
+  }
+
+  signalDependenciesMap.set(node, new Set());
+
+  const {producerNode} = node;
+
+  for (const producer of producerNode ?? []) {
+    signalDependenciesMap.get(node)!.add(producer as SignalNode<unknown>);
+    extractSignalNodesAndEdgesFromRoot(producer as SignalNode<unknown>, signalDependenciesMap);
+  }
+
+  return signalDependenciesMap;
 }
