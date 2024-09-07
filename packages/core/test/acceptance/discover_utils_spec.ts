@@ -418,10 +418,14 @@ describe('discovery utils', () => {
       const {nodes, edges} = signalGraph;
       expect(nodes.length).toBe(3);
       expect(edges.length).toBe(2);
-      const templateNode = nodes.find((node): node is DebugTemplateNode => node.type === 'template')!;
+      const templateNode = nodes.find(
+        (node): node is DebugTemplateNode => node.type === 'template',
+      )!;
       expect(templateNode).toBeDefined();
 
-      const signalNode = nodes.find((node): node is DebugSignalNode<number> => node.type === 'signal')!;
+      const signalNode = nodes.find(
+        (node): node is DebugSignalNode<number> => node.type === 'signal',
+      )!;
       expect(signalNode).toBeDefined();
 
       const effectNode = nodes.find((node): node is DebugEffectNode => node.type === 'effect')!;
