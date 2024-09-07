@@ -533,38 +533,48 @@ function extractInputDebugMetadata<T>(inputs: DirectiveDef<T>['inputs']) {
 
 type SignalGraphNode<T> = SignalNode<T> | ComputedNode<T> | WatchNode | ReactiveLViewConsumer;
 
-interface DebugSignalNode<T> {
+export interface DebugSignalNode<T> {
   type: 'signal';
   label: string;
   value: T;
 }
-interface DebugEffectNode {
+export interface DebugEffectNode {
   type: 'effect';
   label: string;
 }
 
-interface DebugComputedNode<T> {
+export interface DebugComputedNode<T> {
   type: 'computed';
   label: string;
   value: T;
 }
 
-interface DebugTemplateNode {
+export interface DebugTemplateNode {
   type: 'template';
   label: string;
 }
 
-type DebugSignalGraphNode<T> =
+export type DebugSignalGraphNode<T> =
   | DebugSignalNode<T>
   | DebugEffectNode
   | DebugComputedNode<T>
   | DebugTemplateNode;
 
 interface DebugSignalGraphEdge {
-  from: number;
-  to: number;
+  /**
+   * Index of a signal node in the `nodes` array that is a consumer of the signal produced by the producer node.
+   */
+  consumer: number;
+
+  /**
+   * Index of a signal node in the `nodes` array that is a producer of the signal consumed by the consumer node.
+   */
+  producer: number;
 }
 
+/**
+ * A debug representation of the signal graph.
+ */
 interface DebugSignalGraph<T> {
   nodes: DebugSignalGraphNode<T>[];
   edges: DebugSignalGraphEdge[];
@@ -618,11 +628,11 @@ export function getSignalGraph(injector: Injector): DebugSignalGraph<unknown> {
     extractSignalNodesAndEdgesFromRoot(signalRoot, signalDependenciesMap);
   }
 
-  return extractNodesAndEdgesFromSignalMap(signalDependenciesMap);
+  return getNodesAndEdgesFromSignalMap(signalDependenciesMap);
 }
 
-function extractNodesAndEdgesFromSignalMap(
-  signalMap: Map<SignalGraphNode<unknown>, Set<SignalGraphNode<unknown>>>,
+function getNodesAndEdgesFromSignalMap(
+  signalMap: ReadonlyMap<SignalGraphNode<unknown>, ReadonlySet<SignalGraphNode<unknown>>>,
 ): {
   nodes: DebugSignalGraphNode<unknown>[];
   edges: DebugSignalGraphEdge[];
@@ -663,7 +673,7 @@ function extractNodesAndEdgesFromSignalMap(
   const edges: DebugSignalGraphEdge[] = [];
   for (const [node, producers] of signalMap.entries()) {
     for (const producer of producers) {
-      edges.push({from: nodes.indexOf(node), to: nodes.indexOf(producer)});
+      edges.push({consumer: nodes.indexOf(node), producer: nodes.indexOf(producer)});
     }
   }
 

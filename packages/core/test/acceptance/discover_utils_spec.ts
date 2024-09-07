@@ -30,6 +30,9 @@ import {getLContext} from '../../src/render3/context_discovery';
 import {getHostElement} from '../../src/render3/index';
 import {
   ComponentDebugMetadata,
+  DebugEffectNode,
+  DebugSignalNode,
+  DebugTemplateNode,
   getComponent,
   getComponentLView,
   getContext,
@@ -415,8 +418,15 @@ describe('discovery utils', () => {
       const {nodes, edges} = signalGraph;
       expect(nodes.length).toBe(3);
       expect(edges.length).toBe(2);
+      const templateNode = nodes.find((node): node is DebugTemplateNode => node.type === 'template')!;
+      expect(templateNode).toBeDefined();
 
-      const [templateNode, signalNode, effectNode] = nodes;
+      const signalNode = nodes.find((node): node is DebugSignalNode<number> => node.type === 'signal')!;
+      expect(signalNode).toBeDefined();
+
+      const effectNode = nodes.find((node): node is DebugEffectNode => node.type === 'effect')!;
+      expect(effectNode).toBeDefined();
+
       const [templateToSignalEdge, effectToSignalEdge] = edges;
 
       expect(templateNode.type).toBe('template');
@@ -430,12 +440,12 @@ describe('discovery utils', () => {
       expect(effectNode.label).toBe('non template effect');
 
       // the template node should depend on the primitive signal node
-      expect(templateToSignalEdge.from).toBe(0);
-      expect(templateToSignalEdge.to).toBe(1);
+      expect(templateToSignalEdge.consumer).toBe(0);
+      expect(templateToSignalEdge.producer).toBe(1);
 
       // the effect node should depend on the primitive signal node
-      expect(effectToSignalEdge.from).toBe(2);
-      expect(effectToSignalEdge.to).toBe(1);
+      expect(effectToSignalEdge.consumer).toBe(2);
+      expect(effectToSignalEdge.producer).toBe(1);
     }));
   });
 });
