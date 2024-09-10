@@ -70,7 +70,6 @@ const globalUtilsFunctions = {
   'getInjector': getInjector,
   'getRootComponents': getRootComponents,
   'getDirectives': getDirectives,
-  'getSignalGraphForComponent': getSignalGraphForComponent,
   'applyChanges': applyChanges,
   'isSignal': isSignal,
 };

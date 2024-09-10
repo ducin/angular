@@ -13,7 +13,15 @@ import {SampleService} from './sample.service';
 
 @Component({
   selector: 'app-sample-properties',
-  template: '',
+  template: `
+<ol>
+  <li>Boolean: {{ exampleBoolean }}</li>
+  <li>signalPrimitive: {{ signalPrimitive() }}</li>
+  <li>computedPrimitive: {{ computedPrimitive() }}</li>
+  <li>signalObject: {{ signalObject() | json }}</li>
+  <li>computedObject: {{ computedObject() | json }}</li>
+</ol>
+  `,
   styles: [''],
 })
 export class SamplePropertiesComponent {

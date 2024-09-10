@@ -46,12 +46,3 @@ export function ngDebugDependencyInjectionApiIsSupported(): boolean {
 
   return true;
 }
-
-/**
- * Checks whether SignalGraph debug API is supported within window.ng
- *
- * @returns boolean
- */
-export function ngDebugSignalGraphApiIsSupported(): boolean {
-  return ngDebugApiIsSupported('getSignalGraphForComponent');
-}

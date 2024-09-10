@@ -17,12 +17,14 @@ import {DemoAppComponent} from './demo-app.component';
 import {HeavyComponent} from './heavy.component';
 import {SamplePropertiesComponent} from './sample-properties.component';
 import {ZippyComponent} from './zippy.component';
+import {CommonModule} from '@angular/common';
 
 @NgModule({
   declarations: [DemoAppComponent, HeavyComponent, SamplePropertiesComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   exports: [DemoAppComponent],
   imports: [
+    CommonModule,
     RouterModule.forChild([
       {
         path: '',

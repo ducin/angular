@@ -6,23 +6,51 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Component} from '@angular/core';
+import {Component, computed, effect, inject, Injector, signal} from '@angular/core';
 import {initializeGraph} from './signal-graph-builder';
 import {signalBroker} from './MessageBroker';
 import {DebugSignalGraph} from './signal-graph-types';
+import {getSignalGraph} from '@angular/core/src/render3/util/discovery_utils';
+import {CommonModule} from '@angular/common';
 
 @Component({
   selector: 'ng-signal-graph',
+  standalone: true,
+  imports: [CommonModule],
   template: `
       <span id="graph"></span>
+      <ol>
+        <li>signalPrimitive: {{ signalPrimitive() }}</li>
+        <li>computedPrimitive: {{ computedPrimitive() }}</li>
+        <li>signalObject: {{ signalObject() | json }}</li>
+        <li>computedObject: {{ computedObject() | json }}</li>
+      </ol>
     `,
-  standalone: true,
 })
 export class SignalGraphComponent {
+  #injector = inject(Injector);
+
+  signalPrimitive = signal(123);
+  computedPrimitive = computed(() => this.signalPrimitive() ** 2);
+  signalObject = signal({name: 'John', age: 40});
+  computedObject = computed(() => {
+    const original = this.signalObject();
+    return {...original, age: original.age + 1};
+  });
+
+  myEffect = effect(() => {
+    console.log(
+      this.signalPrimitive(),
+      this.computedPrimitive(),
+      this.signalObject(),
+      this.computedObject(),
+    );
+  });
+
   ngOnInit() {
     initializeGraph(signalBroker);
 
-    const exampleGraphDefinition: DebugSignalGraph<unknown> = {
+    let exampleGraphDefinition: DebugSignalGraph<unknown> = {
       edges: [
         {producer: 1, consumer: 0},
         {producer: 2, consumer: 0},
@@ -44,6 +72,9 @@ export class SignalGraphComponent {
         {label: 'effect', /*value: 'ref to Effect',*/ type: 'effect'},
       ],
     };
+
+    exampleGraphDefinition = getSignalGraph(this.#injector);
+    console.log(exampleGraphDefinition);
 
     signalBroker.publish('nodes-set', exampleGraphDefinition.nodes);
     signalBroker.publish('edges-set', exampleGraphDefinition.edges);

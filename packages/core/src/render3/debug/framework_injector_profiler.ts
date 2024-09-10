@@ -119,7 +119,7 @@ function handleInjectorProfilerEvent(injectorProfilerEvent: InjectorProfilerEven
   }
 }
 
-function handleEffectCreatedEvent(context: InjectorProfilerContext, effect: EffectRef): void {
+function handleEffectCreatedEvent(context: InjectorProfilerContext, effect: any): void {
   const diResolver = getDIResolver(context.injector);
   if (diResolver === null) {
     throwError('An EffectCreated event must be run within an injection context.');
